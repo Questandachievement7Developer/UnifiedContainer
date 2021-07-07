@@ -1,21 +1,58 @@
 #!/bin/bash
+
 echo "Manager Update codename: Tracing the bulk"
+#if some assholes decided to not include which in the rootfs
+if [ ! -f /bin/which ]; then
+
+
+if [ -f /bin/busybox ]; then
+which(){
+busybox which
+}
+fi
+#but what if another asshole doesnt want to include busybox due to business reason?
+
+if [ -f /bin/toybox ]; then
+which(){
+toybox which
+}
+
+fi
+fi
+
+
+
+
+if [ ${diagnosticTrigger} == "1" ] && [ ! -z ${diagnosticTrigger} ]; then
+set -x
+export PrimaryParam=""
+export SecondaryParam=""
+export TertiaryParam=""
+export quadtiaryParam=""
+# a bug has been known tha
+fi
+
+
+if [ -z ${foreignenvironment} ] || [ ${foreignenvironment} == "0" ]; then # this if are for the Mitigation if it used in a AlternateEnvironment
 export PrimaryParam=${1}
 export SecondaryParam=${2}
 export TertiaryParam=${3}
+export quadtiaryParam=${4}
+fi
 #set -x
-#echo DEBUG PARAM CHECK ${PrimaryParam} ${SecondaryParam}
-
-
-#proot Seccomp Acceleration SEGFAULT CRASHES FIX
-#export PROOT_NO_SECCOMP=1
-
+if [ ${DEVELENV} == "1" ] && [ ! -z ${DEVELENV} ]; then
+echo DEBUG PARAM CHECK ${PrimaryParam} ${SecondaryParam}
+fi
+export managerGitlink="https://github.com/Questandachievement7Developer/UnifiedContainer"
+export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/ProgramData/chocolatey/bin"
+#proot Seccomp Acceleration SEGFAULT CRASHES FIX SIGNAL 11 TERMINATION
+export PROOT_NO_SECCOMP=1
+export newInstall=0
 
 
 
 
 export initDir="$(pwd)"
-
 
 red(){
 printf '\e[38;5;210m' > /dev/tty
@@ -47,7 +84,7 @@ export pbadge="[Unified Container Manager]:"
 
 intro(){
 
-if [ ${newInstall} == '1' ]; then
+if [ ${newInstall} == '1' ] && [ ! -z ${newInstall} ]; then
   clear
 blue
 echo "==================================================================="
@@ -67,8 +104,8 @@ paramCheck(){
 #echo DEBUG PARAM CHECK ${PrimaryParam} ${SecondaryParam}
 if [ -z ${PrimaryParam} ]; then
   red
-  echo "${pbadge} 🤔 Invalid Sub command please refer help for manual 🤷"
-  help_unifyServer
+  echo "${pbadge} 🤔 No command detected Redirecting to MENU UI 🤷"
+  menuUI
   exit
 fi
 
@@ -93,13 +130,15 @@ confirmation(){
   randcode=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1)
   randcode="iwilltaketheresponsibilityofmyaction"
   yellow
+  if [ -z ${SCRIPTCALL} ]; then
   echo "${pbadge} ⚠️ Are you sure that you want to do this ?⚠️"
   echo "${pbadge} if you do please type this token"
   echo "${randcode}"
   echo "Your input: "
   read input
   echo "debug ${input}"
-  if [ $input == $randcode ] ; then
+  fi
+  if [ $input == $randcode ] || [ ! -z ${SCRIPTCALL} ] ; then #SCRIPTCALL VARIABLE IS FOR WHEN YOU CALL THIS SCRIPT THRROUGH A SCRIPT AND YOU WANTED TO HAVE no CONFIRMATION
     yellow
     echo "${pbadge} 🚀 Initiating dangerous code"
   else
@@ -110,10 +149,19 @@ fi
 }
 
 nuke(){
+  if [ -z ${removalretry}]; then
 confirmation
+fi
 red
+APIcall systemUI_notifysend "💣_Your_instlalation_is_being_nuked_💣"
 echo "${pbadge} 💣 Nuking the installation 💣"
-rm -rf ${maindir}
+${userspacebackend} ${symlinkfix} rm -rf ${maindir}
+if [ -d "${maindir}" ]; then
+  red
+  echo "${pbadge} ❌ Container Nuking failure Retrying! ❌"
+  export removalretry=1
+  nuke
+fi
 green
 echo "${pbadge} ✔️  Nuking complete ✔️ "
 exit
@@ -126,11 +174,15 @@ launchcontainerSvcFG(){
     exit
   fi
   cd "${containersLair}/${SecondaryParam}"
+  if [ ! -f svcID ]; then
   green
   echo "⏳ Launching container ${SecondaryParam}"
   bash start-bootstrap.sh bash /init
-  echo $! > svcID
-  cat "${logs}/containers_${SecondaryParam}.log"
+else
+  red
+  echo "${pbadge} ❌ Container currently is running if you believe that the container is not running ❌"
+  echo "${0} stop ${SecondaryParam}"
+fi
   exit
 }
 
@@ -146,6 +198,7 @@ launchcontainerSvc(){
   bash start-bootstrap.sh bash /init > "${logs}/containers_${SecondaryParam}.log" 2>&1 &
   echo $! > svcID
   cat "${logs}/containers_${SecondaryParam}.log"
+  APIcall systemUI_notifysend "Container_${SecondaryParam}_Successfully_Launched"
   exit
 }
 
@@ -159,6 +212,7 @@ launchcontainerKill(){
   echo "${pbadge} 🛑 Stopping Container"
   kill -9 $(cat ${containersLair}/${SecondaryParam}/svcID)
   green
+  APIcall systemUI_notifysend "Container_${SecondaryParam}_Successfully_Stopped"
   echo "${pbadge} ✔️ Container Stopped"
   exit
 }
@@ -173,12 +227,16 @@ launchcontainerSHELL(){
   echo Launching container ${SecondaryParam}
   green
   echo "${pbadge} 🌟 Have fun 🌟"
-  bash start-bootstrap.sh screenfetch
+  #bash start-bootstrap.sh screenfetch
   bash start-bootstrap.sh "fish --login"
   exit
 }
 
 executeContainerCMD(){
+  if [ ! -z $@ ] ; then
+    SecondaryParam=${1}
+    TertiaryParam=${2}
+  fi
   if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
     red
     echo "${pbadge} ❌ Container does not exists please create the container first ❌"
@@ -188,44 +246,466 @@ executeContainerCMD(){
   yellow
   echo "${pbadge} 🏃‍ Executing ${TertiaryParam} on ${SecondaryParam}"
   bash start-bootstrap.sh "${TertiaryParam}"
+  if [ -z $@ ] ; then
   exit
+fi
 }
 
 containerManagerImport(){
+  if [ ! -z $@ ] ; then
+    SecondaryParam=${1}
+    TertiaryParam=${2}
+  fi
+APIcall systemUI_notifysend "⌛Importing_container⌛"
+echo "${pbadge} ⌛Importing container configuration ⌛"
 containerID=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1)
 export importedcontainer="${TMPFolder}/${containerID}"
-git clone ${SecondaryParam} ${TMPFolder}/${containerID}
+git clone ${SecondaryParam} ${TMPFolder}/${containerID} > ${logs}/${containerID}_gitcloneLog.log 2>&1
 if [ ! -d "${TMPFolder}/${containerID}" ]; then
   red
   echo "${pbadge} ❌ Imported Container does not exists ❌"
   exit
 fi
+export GITSOURCE="${SecondaryParam}"
 name=$(cat ${importedcontainer}/name)
 packages=$(cat ${importedcontainer}/packages)
 init=$(cat ${importedcontainer}/init)
 setuproutines=$(cat ${importedcontainer}/setup)
+rootfsConfig=${importedcontainer}/additional_container_configuration
 cd ${origindir}
-bash ${0} add ${name}
+if [ -z ${updateContainer} ]; then
+containerManagerAdd ${name}
+fi
+
+ImportedContainerPackageManager(){
+APIcall pwmCall_enable_wakelockcall
+echo "${GITSOURCE}" > ${containersLair}/${name}/origin #add the source link first so if the installs fails user can easily reset the container
 echo "${packages}" > ${containersLair}/${name}/rootfs/packages
+export totalpackage=0
+for b in ${packages}; do
+totalpackage=$((totalpackage + 1))
+done
+currentpackage=0
 for a in ${packages}; do
+currentpackage=$((currentpackage + 1))
+percentage=$((currentpackage * 100 / totalpackage))
 #bash ${0} exec ${name} "apt install -y < /packages"
 yellow
-echo "${pbadge} ⌛ Installing ${a} "
-bash ${0} exec ${name} "pacman -Sy --noconfirm ${a}" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+export SecondaryParamOld="${SecondaryParam}"
+echo "${pbadge} ⌛ Installing Dependencies ${percentage} %"
+export NOBOOT=1 # to prevent any Uncessary checks when reexecuting
+bash ${0} exec ${name} "rm -rf /var/lib/pacman/db.lck" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+bash ${0} exec ${name} "pacman -Syy" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+bash ${0} exec ${name} "pacman -S --needed --overwrite '*' --noconfirm ${a}" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+bash ${0} exec ${name} "rm -rf /var/lib/pacman/db.lck" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+#Efficient code seems to not working? I dont know why?
+#executeContainerCMD ${name} "pacman -Syy" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+#executeContainerCMD ${name} "pacman -S --needed --noconfirm ${a}" >> ${logs}/unifyServerPackageInstaller.log 2>&1
+#executeContainerCMD ${name} "pacman -S --needed --noconfirm ${a}"
 green
 echo "${pbadge} ✔️ Done Installing ${a} "
 done
-echo "${SecondaryParam}" > ${containersLair}/${name}/origin
+
+
+}
+
+ImportedContainerPackageManager
+
+echo "${GITSOURCE}" > ${containersLair}/${name}/origin
 echo "${init}" > ${containersLair}/${name}/rootfs/init
 echo "${setuproutines}" > ${containersLair}/${name}/rootfs/setup
 echo "${pbadge} ✨Container Finishing touch✨"
+echo "${pbadge} Checking rootfs cache"
+if [ -d ${rootfsConfig} ]; then
+  ${userspacebackend} ${symlinkfix} cp -ruaH ${rootfsConfig}/* ${containersLair}/${name}/rootfs
+fi
+#executeContainerCMD ${name} "bash /setup"
+echo "${GITSOURCE}" > ${containersLair}/${name}/origin
 bash ${0} exec ${name} "bash /setup"
 green
+APIcall systemUI_notifysend "✨Container_${SecondaryParam}_Successfully_Installed✨"
+echo "${GITSOURCE}" > ${containersLair}/${name}/origin
 echo "${pbadge} ✨import done✨"
+APIcall pwmCall_disable_wakelockcall
 exit
 }
 
+containerManagerPullDockerImage(){ #HELP Pull an image from Docker Hub:\nBOCKER pull <name> <tag>
+######################################## TO BE IMPLEMENTED #########################################
+mobyfrozenImagePull(){
+set -eo pipefail
+# hello-world                      latest              ef872312fe1b        3 months ago        910 B
+# hello-world                      latest              ef872312fe1bbc5e05aae626791a47ee9b032efa8f3bda39cc0be7b56bfe59b9   3 months ago        910 B
+
+# debian                           latest              f6fab3b798be        10 weeks ago        85.1 MB
+# debian                           latest              f6fab3b798be3174f45aa1eb731f8182705555f89c9026d8c1ef230cbf8301dd   10 weeks ago        85.1 MB
+
+# check if essential commands are in our PATH
+for cmd in curl jq go; do
+	if ! command -v $cmd &> /dev/null; then
+		echo >&2 "error: \"$cmd\" not found!"
+		exit 1
+	fi
+done
+
+usage() {
+	echo "usage: $0 dir image[:tag][@digest] ..."
+	echo "       $0 /tmp/old-hello-world hello-world:latest@sha256:8be990ef2aeb16dbcb9271ddfe2610fa6658d13f6dfb8bc72074cc1ca36966a7"
+	[ -z "$1" ] || exit "$1"
+}
+
+dir="$1" # dir for building tar in
+shift || usage 1 >&2
+
+[ $# -gt 0 -a "$dir" ] || usage 2 >&2
+mkdir -p "$dir"
+
+# hacky workarounds for Bash 3 support (no associative arrays)
+images=()
+rm -f "$dir"/tags-*.tmp
+manifestJsonEntries=()
+doNotGenerateManifestJson=
+# repositories[busybox]='"latest": "...", "ubuntu-14.04": "..."'
+
+# bash v4 on Windows CI requires CRLF separator
+newlineIFS=$'\n'
+if [ "$(go env GOHOSTOS)" = 'windows' ]; then
+	major=$(echo ${BASH_VERSION%%[^0.9]} | cut -d. -f1)
+	if [ "$major" -ge 4 ]; then
+		newlineIFS=$'\r\n'
+	fi
+fi
+
+registryBase='https://registry-1.docker.io'
+authBase='https://auth.docker.io'
+authService='registry.docker.io'
+
+# https://github.com/moby/moby/issues/33700
+fetch_blob() {
+	local token="$1"
+	shift
+	local image="$1"
+	shift
+	local digest="$1"
+	shift
+	local targetFile="$1"
+	shift
+	local curlArgs=("$@")
+
+	local curlHeaders="$(
+		curl -S "${curlArgs[@]}" \
+			-H "Authorization: Bearer $token" \
+			"$registryBase/v2/$image/blobs/$digest" \
+			-o "$targetFile" \
+			-D-
+	)"
+	curlHeaders="$(echo "$curlHeaders" | tr -d '\r')"
+	if grep -qE "^HTTP/[0-9].[0-9] 3" <<< "$curlHeaders"; then
+		rm -f "$targetFile"
+
+		local blobRedirect="$(echo "$curlHeaders" | awk -F ': ' 'tolower($1) == "location" { print $2; exit }')"
+		if [ -z "$blobRedirect" ]; then
+			echo >&2 "error: failed fetching '$image' blob '$digest'"
+			echo "$curlHeaders" | head -1 >&2
+			return 1
+		fi
+
+		curl -fSL "${curlArgs[@]}" \
+			"$blobRedirect" \
+			-o "$targetFile"
+	fi
+}
+
+# handle 'application/vnd.docker.distribution.manifest.v2+json' manifest
+handle_single_manifest_v2() {
+	local manifestJson="$1"
+	shift
+
+	local configDigest="$(echo "$manifestJson" | jq --raw-output '.config.digest')"
+	local imageId="${configDigest#*:}" # strip off "sha256:"
+
+	local configFile="$imageId.json"
+	fetch_blob "$token" "$image" "$configDigest" "$dir/$configFile" -s
+
+	local layersFs="$(echo "$manifestJson" | jq --raw-output --compact-output '.layers[]')"
+	local IFS="$newlineIFS"
+	local layers=($layersFs)
+	unset IFS
+
+	echo "Downloading '$imageIdentifier' (${#layers[@]} layers)..."
+	local layerId=
+	local layerFiles=()
+	for i in "${!layers[@]}"; do
+		local layerMeta="${layers[$i]}"
+
+		local layerMediaType="$(echo "$layerMeta" | jq --raw-output '.mediaType')"
+		local layerDigest="$(echo "$layerMeta" | jq --raw-output '.digest')"
+
+		# save the previous layer's ID
+		local parentId="$layerId"
+		# create a new fake layer ID based on this layer's digest and the previous layer's fake ID
+		layerId="$(echo "$parentId"$'\n'"$layerDigest" | sha256sum | cut -d' ' -f1)"
+		# this accounts for the possibility that an image contains the same layer twice (and thus has a duplicate digest value)
+
+		mkdir -p "$dir/$layerId"
+		echo '1.0' > "$dir/$layerId/VERSION"
+
+		if [ ! -s "$dir/$layerId/json" ]; then
+			local parentJson="$(printf ', parent: "%s"' "$parentId")"
+			local addJson="$(printf '{ id: "%s"%s }' "$layerId" "${parentId:+$parentJson}")"
+			# this starter JSON is taken directly from Docker's own "docker save" output for unimportant layers
+			jq "$addJson + ." > "$dir/$layerId/json" <<- 'EOJSON'
+				{
+					"created": "0001-01-01T00:00:00Z",
+					"container_config": {
+						"Hostname": "",
+						"Domainname": "",
+						"User": "",
+						"AttachStdin": false,
+						"AttachStdout": false,
+						"AttachStderr": false,
+						"Tty": false,
+						"OpenStdin": false,
+						"StdinOnce": false,
+						"Env": null,
+						"Cmd": null,
+						"Image": "",
+						"Volumes": null,
+						"WorkingDir": "",
+						"Entrypoint": null,
+						"OnBuild": null,
+						"Labels": null
+					}
+				}
+			EOJSON
+		fi
+
+		case "$layerMediaType" in
+			application/vnd.docker.image.rootfs.diff.tar.gzip)
+				local layerTar="$layerId/layer.tar"
+				layerFiles=("${layerFiles[@]}" "$layerTar")
+				# TODO figure out why "-C -" doesn't work here
+				# "curl: (33) HTTP server doesn't seem to support byte ranges. Cannot resume."
+				# "HTTP/1.1 416 Requested Range Not Satisfiable"
+				if [ -f "$dir/$layerTar" ]; then
+					# TODO hackpatch for no -C support :'(
+					echo "skipping existing ${layerId:0:12}"
+					continue
+				fi
+				local token="$(curl -fsSL "$authBase/token?service=$authService&scope=repository:$image:pull" | jq --raw-output '.token')"
+				fetch_blob "$token" "$image" "$layerDigest" "$dir/$layerTar" --progress
+				;;
+
+			*)
+				echo >&2 "error: unknown layer mediaType ($imageIdentifier, $layerDigest): '$layerMediaType'"
+				exit 1
+				;;
+		esac
+	done
+
+	# change "$imageId" to be the ID of the last layer we added (needed for old-style "repositories" file which is created later -- specifically for older Docker daemons)
+	imageId="$layerId"
+
+	# munge the top layer image manifest to have the appropriate image configuration for older daemons
+	local imageOldConfig="$(jq --raw-output --compact-output '{ id: .id } + if .parent then { parent: .parent } else {} end' "$dir/$imageId/json")"
+	jq --raw-output "$imageOldConfig + del(.history, .rootfs)" "$dir/$configFile" > "$dir/$imageId/json"
+
+	local manifestJsonEntry="$(
+		echo '{}' | jq --raw-output '. + {
+			Config: "'"$configFile"'",
+			RepoTags: ["'"${image#library\/}:$tag"'"],
+			Layers: '"$(echo '[]' | jq --raw-output ".$(for layerFile in "${layerFiles[@]}"; do echo " + [ \"$layerFile\" ]"; done)")"'
+		}'
+	)"
+	manifestJsonEntries=("${manifestJsonEntries[@]}" "$manifestJsonEntry")
+}
+
+while [ $# -gt 0 ]; do
+	imageTag="$1"
+	shift
+	image="${imageTag%%[:@]*}"
+	imageTag="${imageTag#*:}"
+	digest="${imageTag##*@}"
+	tag="${imageTag%%@*}"
+
+	# add prefix library if passed official image
+	if [[ "$image" != *"/"* ]]; then
+		image="library/$image"
+	fi
+
+	imageFile="${image//\//_}" # "/" can't be in filenames :)
+
+	token="$(curl -fsSL "$authBase/token?service=$authService&scope=repository:$image:pull" | jq --raw-output '.token')"
+
+	manifestJson="$(
+		curl -fsSL \
+			-H "Authorization: Bearer $token" \
+			-H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+			-H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
+			-H 'Accept: application/vnd.docker.distribution.manifest.v1+json' \
+			"$registryBase/v2/$image/manifests/$digest"
+	)"
+	if [ "${manifestJson:0:1}" != '{' ]; then
+		echo >&2 "error: /v2/$image/manifests/$digest returned something unexpected:"
+		echo >&2 "  $manifestJson"
+		exit 1
+	fi
+
+	imageIdentifier="$image:$tag@$digest"
+
+	schemaVersion="$(echo "$manifestJson" | jq --raw-output '.schemaVersion')"
+	case "$schemaVersion" in
+		2)
+			mediaType="$(echo "$manifestJson" | jq --raw-output '.mediaType')"
+
+			case "$mediaType" in
+				application/vnd.docker.distribution.manifest.v2+json)
+					handle_single_manifest_v2 "$manifestJson"
+					;;
+				application/vnd.docker.distribution.manifest.list.v2+json)
+					layersFs="$(echo "$manifestJson" | jq --raw-output --compact-output '.manifests[]')"
+					IFS="$newlineIFS"
+					layers=($layersFs)
+					unset IFS
+
+					found=""
+					# parse first level multi-arch manifest
+					for i in "${!layers[@]}"; do
+						layerMeta="${layers[$i]}"
+						maniArch="$(echo "$layerMeta" | jq --raw-output '.platform.architecture')"
+						if [ "$maniArch" = "$(go env GOARCH)" ]; then
+							digest="$(echo "$layerMeta" | jq --raw-output '.digest')"
+							# get second level single manifest
+							submanifestJson="$(
+								curl -fsSL \
+									-H "Authorization: Bearer $token" \
+									-H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+									-H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
+									-H 'Accept: application/vnd.docker.distribution.manifest.v1+json' \
+									"$registryBase/v2/$image/manifests/$digest"
+							)"
+							handle_single_manifest_v2 "$submanifestJson"
+							found="found"
+							break
+						fi
+					done
+					if [ -z "$found" ]; then
+						echo >&2 "error: manifest for $maniArch is not found"
+						exit 1
+					fi
+					;;
+				*)
+					echo >&2 "error: unknown manifest mediaType ($imageIdentifier): '$mediaType'"
+					exit 1
+					;;
+			esac
+			;;
+
+		1)
+			if [ -z "$doNotGenerateManifestJson" ]; then
+				echo >&2 "warning: '$imageIdentifier' uses schemaVersion '$schemaVersion'"
+				echo >&2 "  this script cannot (currently) recreate the 'image config' to put in a 'manifest.json' (thus any schemaVersion 2+ images will be imported in the old way, and their 'docker history' will suffer)"
+				echo >&2
+				doNotGenerateManifestJson=1
+			fi
+
+			layersFs="$(echo "$manifestJson" | jq --raw-output '.fsLayers | .[] | .blobSum')"
+			IFS="$newlineIFS"
+			layers=($layersFs)
+			unset IFS
+
+			history="$(echo "$manifestJson" | jq '.history | [.[] | .v1Compatibility]')"
+			imageId="$(echo "$history" | jq --raw-output '.[0]' | jq --raw-output '.id')"
+
+			echo "Downloading '$imageIdentifier' (${#layers[@]} layers)..."
+			for i in "${!layers[@]}"; do
+				imageJson="$(echo "$history" | jq --raw-output ".[${i}]")"
+				layerId="$(echo "$imageJson" | jq --raw-output '.id')"
+				imageLayer="${layers[$i]}"
+
+				mkdir -p "$dir/$layerId"
+				echo '1.0' > "$dir/$layerId/VERSION"
+
+				echo "$imageJson" > "$dir/$layerId/json"
+
+				# TODO figure out why "-C -" doesn't work here
+				# "curl: (33) HTTP server doesn't seem to support byte ranges. Cannot resume."
+				# "HTTP/1.1 416 Requested Range Not Satisfiable"
+				if [ -f "$dir/$layerId/layer.tar" ]; then
+					# TODO hackpatch for no -C support :'(
+					echo "skipping existing ${layerId:0:12}"
+					continue
+				fi
+				token="$(curl -fsSL "$authBase/token?service=$authService&scope=repository:$image:pull" | jq --raw-output '.token')"
+				fetch_blob "$token" "$image" "$imageLayer" "$dir/$layerId/layer.tar" --progress
+			done
+			;;
+
+		*)
+			echo >&2 "error: unknown manifest schemaVersion ($imageIdentifier): '$schemaVersion'"
+			exit 1
+			;;
+	esac
+
+	echo
+
+	if [ -s "$dir/tags-$imageFile.tmp" ]; then
+		echo -n ', ' >> "$dir/tags-$imageFile.tmp"
+	else
+		images=("${images[@]}" "$image")
+	fi
+	echo -n '"'"$tag"'": "'"$imageId"'"' >> "$dir/tags-$imageFile.tmp"
+done
+
+echo -n '{' > "$dir/repositories"
+firstImage=1
+for image in "${images[@]}"; do
+	imageFile="${image//\//_}" # "/" can't be in filenames :)
+	image="${image#library\/}"
+
+	[ "$firstImage" ] || echo -n ',' >> "$dir/repositories"
+	firstImage=
+	echo -n $'\n\t' >> "$dir/repositories"
+	echo -n '"'"$image"'": { '"$(cat "$dir/tags-$imageFile.tmp")"' }' >> "$dir/repositories"
+done
+echo -n $'\n}\n' >> "$dir/repositories"
+
+rm -f "$dir"/tags-*.tmp
+
+if [ -z "$doNotGenerateManifestJson" ] && [ "${#manifestJsonEntries[@]}" -gt 0 ]; then
+	echo '[]' | jq --raw-output ".$(for entry in "${manifestJsonEntries[@]}"; do echo " + [ $entry ]"; done)" > "$dir/manifest.json"
+else
+	rm -f "$dir/manifest.json"
+fi
+
+echo "Download of images into '$dir' complete."
+echo "Use something like the following to load the result into a Docker daemon:"
+echo "  tar -cC '$dir' . | docker load"
+}
+  	#token="$(curl -sL -o /dev/null -D- -H 'X-Docker-Token: true' "https://index.docker.io/v1/repositories/$1/images" | tr -d '\r' | awk -F ': *' '$1 == "X-Docker-Token" { print $2 }')"
+    token="$(curl -sL -o /dev/null -D- -H 'X-Docker-Token: true' "https://index.docker.io/v2/repositories/$1/images" | tr -d '\r' | awk -F ': *' '$1 == "X-Docker-Token" { print $2 }')"
+    echo "Docker ${token}"
+    #registry='https://registry-1.docker.io/v1'
+    registry='https://registry-1.docker.io/v2'
+    #/v2/<name>/manifests/<reference>
+  	#id="$(curl -sL -H "Authorization: Token $token" "$registry/repositories/$1/tags/$2" | sed 's/"//g')"
+    id="$(curl -sL -H "Authorization: Token $token" "$registry/repositories/$1/tags/$2" | sed 's/"//g')"
+    echo "Docker ID ${id}"
+  	[[ "${#id}" -ne 64 ]] && echo "No image named '$1:$2' exists" && exit 1
+  	ancestry="$(curl -sL -H "Authorization: Token $token" "$registry/images/$id/ancestry")"
+  	IFS=',' && ancestry=(${ancestry//[\[\] \"]/}) && IFS=' \n\t'; tmp_uuid="$(uuidgen)" && mkdir /tmp/"$tmp_uuid"
+  	for id in "${ancestry[@]}"; do
+  		curl -#L -H "Authorization: Token $token" "$registry/images/$id/layer" -o /tmp/"$tmp_uuid"/layer.tar
+  		tar xf /tmp/"$tmp_uuid"/layer.tar -C /tmp/"$tmp_uuid" && rm /tmp/"$tmp_uuid"/layer.tar
+  	done
+  	echo "$1:$2" > /tmp/"$tmp_uuid"/img.source
+  	bocker_init /tmp/"$tmp_uuid" && rm -rf /tmp/"$tmp_uuid"
+}
+
+
+
 containerManagerExport(){
+APIcall pwmCall_enable_wakelockcall
   if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
     red
     echo "${pbadge} ❌ Container does not exists please create the container first ❌"
@@ -233,23 +713,33 @@ containerManagerExport(){
   fi
 name=${SecondaryParam}
 #bash ${0} exec ${SecondaryParam} "apt list --installed > /packages" #https://askubuntu.com/questions/9135/how-to-backup-settings-and-list-of-installed-packages
-bash ${0} exec ${SecondaryParam} "pacman -Qqe > /packages"
+#bash ${0} exec ${SecondaryParam} "pacman -Qqe > /packages"
+executeContainerCMD ${name} "pacman -Qqe > /packages"
 packages=$(cat ${containersLair}/${SecondaryParam}/rootfs/packages)
 init=$(cat ${containersLair}/${SecondaryParam}/rootfs/init)
-
+echo '# You can edit the setup runtime in here (This installation happens post package installation)' > ${containerExport}/${name}/setup
+executeContainerCMD ${name} "fish -c history" >> ${containerExport}/${name}/setup
+nano ${containerExport}/${name}/setup
 mkdir ${containerExport}/${name}
 echo "${name}" > ${containerExport}/${name}/name
 echo "${packages}" > ${containerExport}/${name}/packages
-echo "${init}" > ${containerExport}/${name}/init
+echo '# You can edit the init file anything you want (Executed everytime launched the container)' > ${containerExport}/${name}/init
+echo "${init}" >> ${containerExport}/${name}/init
+nano ${containerExport}/${name}/init
 #echo "apt-get update; apt-get upgrade; echo Default setup done" > ${containerExport}/${name}/setup
-echo "pacman -Syu --noconfirm ; echo Default setup done" > ${containerExport}/${name}/setup
+#echo "pacman -Syu --noconfirm ; echo Default setup done" > ${containerExport}/${name}/setup
 green
 echo "${pbadge} ✨export done✨"
+APIcall pwmCall_disable_wakelockcall
 exit
 }
 
 
 containerManagerAdd(){
+  if [ ! -z $@ ] ; then
+    SecondaryParam=${1}
+    TertiaryParam=${2}
+  fi
   if [ -d "${containersLair}/${SecondaryParam}" ]; then
     red
     echo "${pbadge} Container Exists"
@@ -257,14 +747,33 @@ containerManagerAdd(){
   else
     yellow
     echo "${pbadge} 📦 Creating Container"
-    ${userspacebackend} ${symlinkfix} cp -ruaH "${defaultContainer}" "${containersLair}/${SecondaryParam}" >> ${logs}/rootfsCopyOperation.log 2>&1
+  if [ ! -d ${unasignedContainer} ] || [ ! -f ${unasignedContainer}/cacheSuccess ]; then
+    if [ -f ${containersLair}/defaultSeq ] && [ -f ${containersLair}/guranteedSeqIntegrity ]; then
+    #echo "Optimization Enabled"
+      mkdir ${containersLair}/${SecondaryParam}
+      ${userspacebackend} ${symlinkfix} tar -C "${containersLair}/${SecondaryParam}" -xf "${containersLair}/defaultSeq" >> ${logs}/rootfsOptimizedCopyOperation.log 2>&1
+      #mv ${containersLair}/${SecondaryParam}/default/* ${containersLair}/${SecondaryParam} #this is unused since the tar compressed directly from the directory
+      #rm -rf ${containersLair}/${SecondaryParam}/default
+  else
+    #echo "Optimization Disabled"
+      ${userspacebackend} ${symlinkfix} cp -ruaH "${defaultContainer}" "${containersLair}/${SecondaryParam}" >> ${logs}/rootfsCopyOperation.log 2>&1
+  fi
+else
+echo "${pbadge} Super Optimization Available"
+mv -v ${unasignedContainer} ${containersLair}/${SecondaryParam} >> ${logs}/containerAheadOptimizationCacheMove.log 2>&1
+containerAheadOptimizationCache > ${logs}/containerAheadOptimizationCache.log 2>&1 & #This will trigger the creation of additional unasigned container
+#echo $! > ${maindir}/containerOptimizationPID
+fi
     echo "$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1)" > ${containersLair}/${SecondaryParam}/containerID
     echo "${pbadge} 📦 Creating Presistent data"
     mkdir "${presistentStorage}/$(cat ${containersLair}/${SecondaryParam}/containerID)"
     green
+    APIcall systemUI_notifysend "✔️_Container_${SecondaryParam}_Successfully_Created"
     echo "${pbadge} ${SecondaryParam} ✔️ Container done"
     echo "${SecondaryParam}" >> ${containerFilesList}
-    exit
+    if [ -z $@ ] ; then
+      exit
+    fi
   fi
 
 }
@@ -281,12 +790,13 @@ containerManagerReset(){
     if [ -f "${containersLair}/${SecondaryParam}/origin" ]; then
       echo "${pbadge} 📦 Resetting Remote Container"
       originLink="$(cat ${containersLair}/${SecondaryParam}/origin)"
+      echo "${originLink}"
       cd ${origindir}
-      rm -rf "${containersLair}/${SecondaryParam}"
+      ${userspacebackend} ${symlinkfix} rm -rf "${containersLair}/${SecondaryParam}"
       bash ${0} import "${originLink}"
     else
       echo "${pbadge} 📦 Resetting Local Container"
-    rm -rf "${containersLair}/${SecondaryParam}"
+    ${userspacebackend} ${symlinkfix} rm -rf "${containersLair}/${SecondaryParam}"
     ${userspacebackend} ${symlinkfix} cp -ruaH "${defaultContainer}" "${containersLair}/${SecondaryParam}" >> ${logs}/rootfsCopyOperation.log  2>&1
   fi
     green
@@ -298,7 +808,9 @@ containerManagerReset(){
 
 
 containerManagerrm(){
+  if [ -z ${removalretry} ]; then
   confirmation
+fi
   if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
     red
     echo "${pbadge} ❌ Container does not exists please create the container first ❌"
@@ -306,8 +818,18 @@ containerManagerrm(){
   else
     yellow
     echo "${pbadge} 🗑️ Removing Container ${SecondaryParam}"
-    rm -rf "${containersLair}/${SecondaryParam}"
+    if [ -f ${maindir}/NOPTRACE ]; then
+      umount -lf ${containersLair}/${SecondaryParam}/rootfs/dev ${containersLair}/${SecondaryParam}/rootfs/sys ${containersLair}/${SecondaryParam}/rootfs/InstallCache ${containersLair}/${SecondaryParam}/rootfs/proc ${containersLair}/${SecondaryParam}/rootfs/exposed >> ${logs}/chrootmountbindRemoval 2>&1
+    fi
+    ${userspacebackend} ${symlinkfix} rm -rf "${containersLair}/${SecondaryParam}"
+    if [ -d "${containersLair}/${SecondaryParam}" ]; then
+      red
+      echo "${pbadge} ❌ Container Removal failed retrying ❌"
+      export removalretry=1
+      containerManagerrm
+    fi
     green
+    APIcall systemUI_notifysend "✔️_Container_${SecondaryParam}_Removal_Successfull"
     echo "${pbadge} ✔️ Removing Finished"
     sed "s/${SecondaryParam}//" ${containerFilesList} > "${containersFilesList}_tmp"
     rm -rf ${containersFilesList}
@@ -367,6 +889,61 @@ EOM
 
 
 
+
+sysFileExchangeExport(){
+if [ -z ${quadtiaryParam}] || [ -z ${TertiaryParam} ]; then
+    red
+    echo "${pbadge} ❌ You forgot to put source or destination ❌"
+    exit
+fi
+if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
+    red
+    echo "${pbadge} ❌ Container does not exists please create the container first ❌"
+    exit
+else
+${userspacebackend} ${symlinkfix} cp -ruavH "${TertiaryParam}" "${containersLair}/${SecondaryParam}/rootfs/${quadtiaryParam}"
+exit
+fi
+}
+
+sysFileExchangeImport(){
+if [ -z ${quadtiaryParam}] || [ -z ${TertiaryParam} ]; then
+    red
+    echo "${pbadge} ❌ You forgot to put source or destination ❌"
+    exit
+fi
+if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
+    red
+    echo "${pbadge} ❌ Container does not exists please create the container first ❌"
+    exit
+else
+${userspacebackend} ${symlinkfix} cp -ruavH "${quadtiaryParam}" "${containersLair}/${SecondaryParam}/rootfs/${quadtiaryParam}"
+exit
+fi
+}
+
+
+debugFunct(){
+sleep 4
+clear
+echo "================================================================="
+red
+echo " Do it at your own risk! You are on your own"
+echo " Please refer to the code when calling a function "
+echo "${pbadge} DEBUG MODE !"
+echo
+green
+console(){
+printf "\n unifyManager dbg console > "
+read a
+${a}
+console
+}
+console
+}
+
+
+
 help_unifyServer(){
 yellow
 echo "${pbadge} Here are the commands"
@@ -386,6 +963,12 @@ echo "${0} exposeStorage <containerName>"
 echo .
 echo "To isolate local storage from the container"
 echo "${0} deexposeStorage <containerName>"
+echo .
+echo "To Grant system Library for the container"
+echo "${0} exposeSystemLibs <containerName>"
+echo .
+echo "To isolate system Library from the container"
+echo "${0} deexposeSystemLibs <containerName>"
 echo .
 echo "Export Container Configuration "
 echo "${0} exportCont <containerName>"
@@ -412,6 +995,18 @@ echo .
 echo "to enter the container Shell"
 echo "${0} shell <containerName>"
 echo .
+echo "to import container from the git server "
+echo "${0} import <git repo link>"
+echo .
+echo "Fix container installation failures "
+echo "${0} fix <containerName>"
+echo .
+echo "to update the container that imported from the git server"
+echo "${0} update <containerName>"
+echo .
+echo "to export File or directory from host "
+echo "${0} exportFile <containerName> <Source dir or File container> <Target dir on Host>"
+echo .
 echo "upgrade Container to newer version"
 echo "${0} upgrade <containerName>"
 echo .
@@ -429,9 +1024,14 @@ echo "${0} edit_routines <containerName>"
 exit
 }
 
-
 paramintrepreter(){
 case ${PrimaryParam} in
+  debug)
+    debugFunct ;;
+  importFile)
+    sysFileExchangeImport ;;
+  exportFile)
+    sysFileExchangeExport ;;
   launch)
     launchcontainerSvc ;;
   install)
@@ -450,6 +1050,10 @@ case ${PrimaryParam} in
     containerManagerExposeStorage ;;
   deexposeStorage)
     containerManagerDeExposeStorage ;;
+  exposeSystemLibs)
+    containerManagerExposeSystemLibrary ;;
+  deexposeSystemLibs)
+    containerManagerDeExposeSystemLibrary ;;
   reset)
     containerManagerReset ;;
   list)
@@ -466,39 +1070,129 @@ case ${PrimaryParam} in
     containerManagerAdd ;;
   upgrade)
     containerManagerUpgrade ;;
+  update)
+    containerManagerUpdate ;;
+  fix)
+    containerManagerUpdate ;;
   remove)
     containerManagerrm ;;
   edit_routines)
     editroutinesContainer ;;
   *)
-    help_unifyServer ;;
+    menuUI ;;
 esac
-
+}
 # if the bash is recognized this one rather the real one
 # then it have a big problem
 
 # bash does not recognize this function
+
+menuUI(){
+  HEIGHT=15
+  WIDTH=80
+  CHOICE_HEIGHT=18
+  BACKTITLE="unifyServer"
+  TITLE="unifyServer Menu"
+  OPTIONS=(
+  "launch" "Launch a container as a daemon"
+  "launchfg" "Launch a container in foreground"
+  "stop" "Stop a container daemon"
+  "add" "Add a container"
+  "remove" "remove a container"
+  "reset" "reset a container"
+  "fix" "Fix a container (only for Remote imported container)"
+  "list all" "List and the status of contaieners"
+  "shell" "Enters the container shell"
+  "exportCont" "export container configuration into containersys/ExportedContainer"
+  "nuke yes" "Reset the whole installation"
+  "exitUI" "exits the UI manager")
+
+  mission=$(dialog --clear \
+                  --backtitle "$BACKTITLE" \
+                  --title "Select Action" \
+                  --menu "$MENU" \
+                  $HEIGHT $WIDTH $CHOICE_HEIGHT \
+                  "${OPTIONS[@]}" \
+                  2>&1 >/dev/tty)
+
+echo "if you are stuck do ctrl+c it wont damage anything"
+  commandExecutor(){
+    if [ ! -z $2 ]; then
+    secondParam=${1}
+  fi
+    if [ -z $2 ]; then
+      secondParam=$(dialog --title "Insert the second parameter" \
+      --backtitle "$BACKTITLE" \
+      --inputbox "Enter the second parameter" 8 60 )
+    fi
+    echo Processing ${1}
+    ${1} ${secondParam} ${3} ${4} ${5}
+  }
+commandExecutor "${mission}"
+exit
+}
+
+
+exitUI(){
+  exit
+}
+
 linkManagerPath(){
 if [ ! -z "${PREFIX}" ]; then
 echo "${pbadge} PREFIX VARIABLE IS DETECTED WE ARE GOING TO INSTALL THERE"
 installTarget="${PREFIX}/bin"
 else
-installTarget="/usr/local/bin"
+if [ ${WSLenv} == "1" ] && [ ! -z ${WSLenv} ]; then
+installTarget="/bin"
+else
+installTarget="${HOME}/bin"
+mkdir ${installTarget}
+fi
 fi
 managerExec="${installTarget}/bay"
-echo "cd ${origindir} ; bash ./unifyServer $1 \$2 \$3 " > "${managerExec}"
+cat > "${managerExec}" <<- EOM
+#!/bin/sh
+if [ ! -d ${origindir} ] ;then
+echo "This is strange Why there isnt a unifyServer Folder here?"
+git clone ${managerGitlink} ${origindir}
+else
+cd ${origindir}
+if [ ! -z "\$(cat unifyServer)" ]; then
+bash ./unifyServer \$1 \$2 \$3 \$4
+else
+echo "This is Really strange and i dont like it! how in the world the actual installation exists but there isnt any code inside??!?!"
+bash recovery
+fi
+fi
+EOM
 chmod 777 "${managerExec}"
-echo "${pbadge} Installation is successfull"
+
+managerExec="${installTarget}/unifyServer"
+cat > "${managerExec}" <<- EOM
+#!/bin/sh
+if [ ! -d ${origindir} ] ;then
+echo "This is strange Why there isnt a unifyServer Folder here?"
+git clone ${managerGitlink} ${origindir}
+else
+cd ${origindir}
+if [ ! -z "\$(cat unifyServer)" ]; then
+bash ./unifyServer \$1 \$2 \$3 \$4
+else
+echo "This is Really strange and i dont like it! how in the world the actual installation exists but there isnt any code inside??!?!"
+bash recovery
+fi
+fi
+EOM
+chmod 777 "${managerExec}"
+
 exit
 }
-
 upgradeMainContainer(){
-rm -rf ${defaultContainer}
+${userspacebackend} ${symlinkfix} rm -rf ${defaultContainer}
 export newInstall=1
 defaultContainerSetup
 }
 
-}
 containerManagerUpgrade(){
   if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
     red
@@ -526,6 +1220,58 @@ echo "${pbadge} ✔️ Local Storage Denied "
 exit
 fi
 
+}
+
+containerManagerDeExposeSystemLibrary(){
+  if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
+    red
+    echo "${pbadge} ❌ Container does not exists please create the container first ❌"
+    exit
+  else
+rm ${containersLair}/${SecondaryParam}/grantSystemLibrary
+green
+echo "${pbadge} ✔️ System Library Blocked "
+exit
+fi
+
+}
+
+containerManagerExposeSystemLibrary(){
+  if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
+    red
+    echo "${pbadge} ❌ Container does not exists please create the container first ❌"
+    exit
+  else
+echo 1 > ${containersLair}/${SecondaryParam}/grantSystemLibrary
+green
+echo "${pbadge} ✔️ System Library Granted "
+exit
+fi
+
+}
+
+containerManagerUpdate(){
+  if [ ! -z $@ ] ; then
+    SecondaryParam=${1}
+    TertiaryParam=${2}
+  fi
+  if [ ! -d "${containersLair}/${SecondaryParam}" ]; then
+    red
+    echo "${pbadge} ❌ Container does not exists please create the container first ❌"
+    exit
+  else
+    export updateContainer=1
+    if [ ! -f "${containersLair}/${SecondaryParam}/origin" ]; then
+      red
+      echo "${pbadge} ❌ This feature is not available for locally created container ❌"
+      exit
+    fi
+containerManagerImport "$(cat ${containersLair}/${SecondaryParam}/origin)"
+echo "${pbadge} ✔️ Container Updated "
+fi
+if [ -z $@ ]; then
+exit
+fi
 }
 
 containerManagerExposeStorage(){
@@ -570,7 +1316,7 @@ else
   red
 echo "❌The Container is isolated from the local storage"
 fi
-if [ -d ${presistentStorage}/$(cat ${containersLair}/${a}/containerID) ]; then
+if [ ! -d ${presistentStorage}/$(cat ${containersLair}/${a}/containerID) ]; then
   red
 echo "❌The Container does not support presistent storage yet"
 yellow
@@ -599,16 +1345,38 @@ exit
 folderInit(){
 export origindir=$(pwd)
 export maindir="${initDir}/containersys"
+export recoveryEnvironmentDir="${origindir}/managerbackup"
 export presistentStorage="${maindir}/presistent_storage"
 export containersLair="${maindir}/containers"
 export defaultContainer="${containersLair}/default"
-export Loader="${maindir}/loader"
+export unasignedContainer="${containersLair}/unasigned"
+export loader="${maindir}/loader"
 export TMPFolder="${maindir}/tmp"
+export PACMANTMPFolder="${TMPFolder}/pacmanCache" #basically will accelerate pacman Caches
+export unasignedContainerTMP="${TMPFolder}/unasigned"
 export logs="${maindir}/logs"
 export containerExport=${maindir}/containerExport
+export APIHAL=${maindir}/sysIO
+export APIHAL_INPUT=${APIHAL}/input
+export APIHAL_OUTPUT=${APIHAL}/output
 export containerFilesList="${maindir}/containers.txt"
+if [ ! -d ${recoveryEnvironmentDir} ]; then
+mkdir ${recoveryEnvironmentDir}
+fi
 if [ ! -d ${maindir} ]; then
   mkdir ${maindir}
+fi
+
+if [ ! -d ${APIHAL} ]; then
+  mkdir ${APIHAL}
+fi
+
+if [ ! -d ${APIHAL_INPUT} ]; then
+  mkdir ${APIHAL_INPUT}
+fi
+
+if [ ! -d ${APIHAL_OUTPUT} ]; then
+  mkdir ${APIHAL_OUTPUT}
 fi
 
 if [ ! -d ${presistentStorage} ]; then
@@ -621,6 +1389,10 @@ fi
 
 if [ ! -d ${TMPFolder} ]; then
   mkdir ${TMPFolder}
+fi
+
+if [ ! -d ${PACMANTMPFolder} ]; then
+  mkdir ${PACMANTMPFolder}
 fi
 
 if [ ! -d ${logs} ]; then
@@ -665,24 +1437,28 @@ fi
 distroDetection(){
 # DISTRO MANAGER DETECTION IS ALSO USED TO DETERMINE WHERE DOES THE SCRIPT RUN
 export ptracecompat='1' #flag ptrace compatibility based on the distro or kernel that its running
+export iSHenv="0"
+export BLINDBOOT="0"
 export linktosymlinkActivated=0
 export arch=$(uname -m)
 if [ ! -z $(which apk) ]; then
-  echo "THIS MIGHT BE RUNNING ON iSH which Does not support Ptrace"
+  echo "Alpine Distro"
   export packmanager=apk
   export installParameter="add"
-  export ptracecompat='0'
+  export distro="alpine"
 fi
 
 if [ ! -z $(which apt) ]; then
 export packmanager="apt"
 export installParameter="install -y"
+export distro="debianGNU"
 fi
     if [ ! -z $(which pkg) ]; then
     export packmanager=pkg
     export installParameter="install -y"
     export linktosymlinkActivated=1
     echo Termux Detected
+    export distro="termux"
 
     fi
 
@@ -690,17 +1466,29 @@ fi
     if [ ! -z $(which yum) ]; then
     export packmanager="yum"
     export installParameter="install -y"
+    export distro="centOSGNU"
     fi
 
-    if [[ $(grep Microsoft /proc/version) ]]; then
+    if [[ $( uname -a | grep Microsoft ) ]]; then
       echo "Bash is running on WSL"
       echo "PTRACE ON WSL 1 IS NOT SUPPORTED"
       export ptracecompat='0'
+      export WSLenv="1"
+    fi
+
+    if [[ $( uname -a | grep iSH ) ]]; then
+      echo "Bash is running on iSH"
+      echo "PTRACE ON iSH IS NOT SUPPORTED"
+      export iSHenv="1"
+      export BLINDBOOT="1"
+      export ptracecompat='0'
+      export WSLenv="0"
     fi
 
     if [ ! -z $(which pacman) ]; then
     export packmanager="pacman"
     export installParameter="-Sy --noconfirm"
+    export distro="archlinux"
     echo Redownloading Databases
     pacman -Syy
     fi
@@ -708,6 +1496,11 @@ fi
     if [ ! -z $(which easy_install) ]; then
     export pyPacman="easy_install"
     export pyInstallParam=""
+    fi
+
+    if [ ! -z $(which add-apt-repository) ]; then
+    export packmanager="apt-get"
+    export installParameter="install -y"
     fi
 
     if [ ! -z $(which pip) ]; then
@@ -721,18 +1514,19 @@ fi
 
 dependencies(){
 if [ ${newInstall} == "1" ]; then
-  if [ ! -z $(which add-apt-repository) ]; then
-  export packmanager="apt-get"
-  export installParameter="install -y"
+##SPECIAL TREATMENT NOT A DISTRO DETECTION
+if [ ! -z $(which add-apt-repository) ]; then
   echo Apt detected doing some special treatment
-  add-apt-repository universe
   echo Refreshing Repo
   apt-get update
-  fi
+  add-apt-repository universe
+fi
+
+
   distroDetection
   export distComplete="$(uname -a)"
 
-  requirements="chroot busybox wget git proot"
+  requirements="chroot busybox wget git proot aria2 aria2c xclip dialog nano"
  echo "echo Installing 🔧" > ${TMPFolder}/SUINSTALL
   for i in ${requirements}; do
     green
@@ -745,6 +1539,15 @@ su -c "bash ${TMPFolder}/SUINSTALL"
 else
 bash ${TMPFolder}/SUINSTALL
 fi
+# https://github.com/Windos/BurntToast
+# https://codelearn.me/2019/01/13/wsl-windows-toast.html
+if [ ${WSLenv} == "1" ] && [ ! -z ${WSLenv} ]; then
+  echo "Installing Powershell WSL bridge"
+  powershell.exe -Command "Start-Process PowerShell 'Install-Module -Name BurntToast' -Verb RunAs"
+  powershell.exe -Command "Start-Process PowerShell 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' -Verb RunAs"
+  powershell.exe -Command "Start-Process PowerShell 'Import-Module BurntToast' -Verb RunAs"
+fi
+
 
 #alternative for proot
   if [ -z $(which proot) ]; then
@@ -819,16 +1622,11 @@ ptraceCompatibilityPolice(){
 
 
 bootstrapSetup(){
-
+APIcall pwmCall_enable_wakelockcall
 folder=rootfs
-if [ -d "$folder" ]; then
-	first=1
-  green
-	echo "${pbadge} ⏭️ skipping downloading"
-fi
 tarball="bootstrap.tar.gz"
 if [ "$first" != 1 ];then
-	if [ ! -f $tarball ]; then
+	if [  ${tarball} == $tarball ]; then
     yellow
 		echo "${pbadge} ⌛ downloading bootstrap-image"
 		#case `dpkg --print-architecture` in
@@ -837,20 +1635,22 @@ if [ "$first" != 1 ];then
 		aarch64)
 			archurl="arm64" ; specialarchtype="arm" ; downloadcompass="http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz"  ;;
 		arm)
-			archurl="armhf" ;specialarchtype="arm" ; downloadcompass="http://os.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz" ;;
+			archurl="armhf" ; specialarchtype="arm" ; downloadcompass="http://os.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz" ;;
     armv7*)
-  		archurl="armhf" ;specialarchtype="arm" ; downloadcompass="http://os.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz" ;;
+  		archurl="armhf" ; specialarchtype="arm" ; downloadcompass="http://os.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz" ;;
 		amd64)
-			archurl="amd64" ; subfolder="root.x86_64" ;  specialarchtype="" ; downloadcompass="https://github.com/Questandachievement7Developer/UnifiedContainer/releases/download/ArchrootfsDownloadamd64/archlinux-bootstrap-2020.03.01-x86_64.tar.gz" ;;
+			archurl="amd64" ; specialarchtype="x86_64"  ; subfolder="root.x86_64" ; downloadcompass="https://github.com/Questandachievement7Developer/UnifiedContainer/releases/download/ArchrootfsDownloadamd64/archlinux-bootstrap-2020.03.01-x86_64.tar.gz" ;;
 		*86_64)
-			archurl="amd64"; subfolder="root.x86_64" ; specialarchtype='' ; downloadcompass='https://github.com/Questandachievement7Developer/UnifiedContainer/releases/download/ArchrootfsDownloadamd64/archlinux-bootstrap-2020.03.01-x86_64.tar.gz' ;;
+			archurl="amd64" ; specialarchtype="x86_64" ; subfolder="root.x86_64" ; downloadcompass='https://github.com/Questandachievement7Developer/UnifiedContainer/releases/download/ArchrootfsDownloadamd64/archlinux-bootstrap-2020.03.01-x86_64.tar.gz' ;;
+    i686)
+  		archurl="i686" ; specialarchtype="i686" ; downloadcompass='https://github.com/Questandachievement7Developer/UnifiedContainer/releases/download/rootfsarch686/arch32.tar.gz' ;;
 		*)
 			echo "❌ Unsupported architecture ❌"; exit 1 ;;
 		esac
     echo exec
     #https://github.com/MFDGaming/bootstrap-in-termux/blob/master/bootstrap.sh
     #export UBUNTU_VERSION=19.10
-    echo "${downloadcompass}"
+    #echo "${downloadcompass}"
     #wget "https://github.com/Questandachievement7Developer/UnifiedContainer/releases/download/downloadableRootfs/${archurl}.gz" -O ${tarball}
     #
     #
@@ -859,19 +1659,70 @@ if [ "$first" != 1 ];then
 
 
     #Well the problem is actually i put the o lowercase rather than the O capital
-    wget ${downloadcompass} -O ${tarball}
+    echo "${pbadge} Downloading ${tarball}"
+    if [ -z $(which aria2c) ] && [ ${iSHenv} == "0" ]; then #iSH cannot download multiple connection due to iOS constraints
+    wget ${downloadcompass} -O ${tarball} >> ${logs}/DownloadloadTarballCheck.log 2>&1
+  fi
+    if [ ! -z $(which aria2c) ] && [ ${iSHenv} == "0" ]; then
+      green
+      echo "${pbadge} Download acceleration is available"
+      rm -rf ${tarball}
+      aria2c --max-connection-per-server=16 --min-split-size=1M ${downloadcompass} -o ${tarball} >> ${logs}/DownloadloadTarballCheck.log 2>&1
+    fi
 		#wget "https://partner-images.canonical.com/core/disco/current/bootstrap-disco-core-cloudimg-${archurl}-root.tar.gz" -O $tarball
+    if [ ${iSHenv} == "1" ]; then
+      red
+      echo "${pbadge} ⚠️ Hazardous environment detected! ⚠️"
+      echo "${pbadge} Please insert downloaded rootfs.tar.gz manually! onto the sideloadRootfs folder"
+      if [ -f ${origindir}/sideloadRootfs/arch32.tar.gz ]; then
+        green
+        echo "iSH sideloadRootfs Initiated!"
+        yellow
+        echo "please be aware that if you downloaded wrong rootfs or corrupted"
+        echo "your installation will bootloop!"
+        green
+        cp ${origindir}/sideloadRootfs/arch32.tar.gz ${tarball}
+      else
+      yellow
+      clear
+      echo "================================================"
+      echo "We will attempt to download automatically"
+      echo "However i do recommend you to download manually from this link"
+      echo "${downloadcompass}"
+      echo "and copy to the sideloadRootfs folder through the finder"
+      echo "================================================"
+      echo The download will start within 60 seconds
+      sleep 60
+      mkdir ${origindir}/sideloadRootfs
+      echo "${pbadge} ⚠️ Automatically switch to advanced download manager ⚠️"
+      yellow
+      echo "${pbadge} Increasing download segmentation and unlocking retry limit"
+      green
+      echo "${pbadge} Download started!"
+      echo "Please wait keep the app on foreground"
+      #Fixes https://github.com/ish-app/ish/issues/220
+      #since we dont expect people going to stay on the terminal for more than 1 minutes and probably turn off the phone we going to allow the aria2c to retry the download for unlimited amount of time and segmented
+      #This problem seems occouring in iSH build 66 and in iOS 13.4.1
+      # time out 1 second with minimum speed of 128k due to indihome super slow speed compensation
+      # only one connection allowed to prevent segmentation corruption
+      aria2c --max-connection-per-server=1 --lowest-speed-limit=128K --timeout=1 --min-split-size=1148576 --async-dns=false --max-tries=0 ${downloadcompass} -o ${tarball} >> ${logs}/DownloadloadTarballCheck.log 2>&1
+    fi
+    fi
 	fi
 	cur=`pwd`
 	mkdir -p "$folder"
 	cd "$folder"
-  yellow
+  green
 	echo "${pbadge} 🗜️ decompressing bootstrap image"
-	${userspacebackend} ${symlinkfix} tar -vxf ${cur}/${tarball} --exclude='dev' --exclude='firmware' --exclude='kernel' >> ${logs}/rootfsExtract.log
+  yellow
+  echo "${pbadge} This may take 10 minutes or more depending on the environment that is being installed"
+	${userspacebackend} ${symlinkfix} tar -vxf ${cur}/${tarball} --exclude='dev' --exclude='firmware' --exclude='kernel' >> ${logs}/rootfsExtract.log 2>&1
   if [ ! -z ${subfolder} ]; then
   ${userspacebackend} ${symlinkfix} cp -rua ${subfolder}*/* .
   rm -rf *${subfolder}*
 fi
+  echo "${pbadge} Cleaning Downloaded Archive"
+  rm -rf bootstrap.tar.gz
   stubs=()
   stubs+=('usr/bin/groups')
   #stubs=('usr/bin/groups')
@@ -891,7 +1742,7 @@ fi
   echo "nameserver 194.170.223.73" >> etc/resolv.conf
   echo "nameserver 103.112.19.245" >> etc/resolv.conf
   printf "⌛ Creating Mount Points \n"
-  mkdir exposed data presistent_storage dev sys proc
+  mkdir exposed data presistent_storage dev sys proc InstallCache
 	cd "$cur"
 fi
 mkdir -p binds
@@ -899,7 +1750,7 @@ bin=start-bootstrap.sh
 echo "${pbadge} 🚀 writing launch script"
 cat > $bin <<- EOM
 #!/bin/bash
-echo BOOTLOADER revision 020
+echo BOOTLOADER revision 027
 containerID=\$(cat containerID)
 cd \$(dirname \$0)
 ## unset LD_PRELOAD in case termux-exec is installed
@@ -914,19 +1765,43 @@ unset LD_PRELOAD
 ###############################ROOT MANAGER ##########################
 
 
+if [ \${BLINDBOOT} == "1" ]; then
+echo "WARNING THIS IS USING BAREBONE BLIND BOOTING METHOD!"
+echo "YOUR PROGRAM WILL NOT WORK PROPERLY!"
+command="chroot"
+command+=" ${folder}"
+command+=" /bin/env -i"
+command+=" PATH=/usr/local/sbin:/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/games:/usr/local/games"
+command+=" HOME=/root"
+command+=" /bin/bash"
+fi
 
-if [ -f \${maindir}/NOPTRACE ]; then
+
+if [ -f \${maindir}/NOPTRACE ] && [ \${BLINDBOOT} == "0" ] ; then
 #chroot version
-echo "Sanitizing Mount points"
+echo "[Progress] Sanitizing Mount points"
+echo "system control fs"
 mount --bind /dev ${folder}/dev
 mount --bind /proc ${folder}/proc
 mount --bind /sys ${folder}/sys
+echo "[Progress] system storage Cachemount"
+mount --bind ${PACMANTMPFolder} ${folder}/InstallCache
+echo "[Progress] manager storage Expose"
 if [ -d /sdcard ] && [ -f grantStorage ]; then
 mount --bind /sdcard ${folder}/exposed"
 fi
 if [ -d /home ] && [ -f grantStorage ]; then
 mount --bind /home ${folder}/exposed"
 fi
+echo "[Progress] System Library Expose"
+if [ -d /system ] && [ -f grantSystemLibrary ]; then
+mount --bind /system ${folder}/systemfs"
+fi
+if [ -d /usr/lib ] && [ -f grantSystemLibrary ]; then
+mount --bind / ${folder}/systemfs"
+fi
+
+echo "chrootdefine"
 command="chroot"
 command+=" ${folder}"
 command+=" /bin/env -i"
@@ -936,7 +1811,9 @@ command+=" PATH=/usr/local/sbin:/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin:/us
 command+=" LANG=C.UTF-8"
 command+=" HOME=/root"
 command+=" /bin/bash --login"
-else
+fi
+if [ ! -f \${maindir}/NOPTRACE ]  && [ \${BLINDBOOT} == "0" ] ; then
+  echo "prootdefine"
   #proot version
 command="proot"
 command+=" ${symlinkfix}"
@@ -955,11 +1832,19 @@ fi
 if [ -d /home ] && [ -f grantStorage ]; then
   command+=" -b /home:/exposed"
 fi
+echo Exposing systemLib
+if [ -d /system ] && [ -f grantSystemLibrary ]; then
+  command+=" -b /system:/systemfs"
+fi
+if [ -d /usr/lib ] && [ -f grantSystemLibrary ]; then
+  command+=" -b /:/systemfs"
+fi
 command+=" -b /proc"
 ## uncomment the following line to have access to the home directory of termux
 #command+=" -b /data/data/com.termux/files/home:/root"
 ############ uncomment the following line to mount /sdcard directly to /
 #command+=" -b /sdcard"
+command+=" -b ${PACMANTMPFolder}:${folder}/InstallCache"
 command+=" -w /root"
 command+=" /bin/env -i"
 command+=" HOME=/root"
@@ -970,12 +1855,15 @@ command+=" /bin/bash --login"
 fi
 
 ###################################ROOT MANAGER #######################################
-
+echo "[Progress] Check Param"
 com="\$@"
-
+echo "[Progress] Init check"
 if [ "\$2" == "/init" ]; then
 echo a > boot
 fi
+
+
+echo EXEC
 if [ -z "\$1" ];then
     exec \$command
 else
@@ -989,10 +1877,13 @@ if [ -f \${maindir}/NOPTRACE ]; then
 umount -lf ${folder}/dev
 umount -lf ${folder}/sys
 umount -lf ${folder}/proc
+umount -lf ${folder}/InstallCache
 if [ -f grantStorage ]; then
 umount -lf ${folder}/exposed
 fi
 fi
+echo Removing container Bootup flag
+rm svcID
 
 EOM
 echo "${pbadge} Writing done"
@@ -1017,6 +1908,16 @@ echo "Hello world"
 uname -a
 EOM
 
+sudofix=${folder}/bin/sudo
+##### SUDO FIX ####
+cat > "$sudofix" <<- EOM
+#!/bin/sh
+echo "Emulated Sudo revision 1"
+su -c "\$@"
+EOM
+chmod +x ${folder}/bin/sudo
+
+
 # Setting up mirrorlist
 pacmanconf="${folder}/etc/pacman.conf"
 mirrorlistpacman="${folder}/etc/pacman.d/mirrorlist"
@@ -1034,7 +1935,7 @@ cat > "$pacmanconf" <<- EOF
 # If you wish to use different paths, uncomment and update the paths.
 #RootDir     = /
 #DBPath      = /var/lib/pacman/
-#CacheDir    = /var/cache/pacman/pkg/
+CacheDir    = /InstallCache
 #LogFile     = /var/log/pacman.log
 #GPGDir      = /etc/pacman.d/gnupg/
 HoldPkg     = pacman glibc
@@ -1046,7 +1947,7 @@ SyncFirst   = pacman
 Architecture = auto
 
 # Pacman won't upgrade packages listed in IgnorePkg and members of IgnoreGroup
-#IgnorePkg   = linux-*
+IgnorePkg   = linux
 #IgnoreGroup =
 
 #NoUpgrade   =
@@ -1196,7 +2097,9 @@ Server = http://nj.us.mirror.archlinuxarm.org/\$arch/\$repo
 ## Da Nang
 Server = http://vn.mirror.archlinuxarm.org/\$arch/\$repo
 EOF
-else
+fi
+
+if [ ${specialarchtype} == "i686" ]; then
 cat > "$pacmanconf" <<- EOF
 # /etc/pacman.conf
 # UNIFYSERVER PATCHED
@@ -1209,7 +2112,7 @@ cat > "$pacmanconf" <<- EOF
 # If you wish to use different paths, uncomment and update the paths.
 #RootDir     = /
 #DBPath      = /var/lib/pacman/
-#CacheDir = /var/cache/pacman/pkg/
+CacheDir    = /InstallCache
 #LogFile     = /var/log/pacman.log
 #GPGDir      = /etc/pacman.d/gnupg/
 #HookDir     = /etc/pacman.d/hooks/
@@ -1222,7 +2125,156 @@ SyncFirst    = manjaro-system archlinux-keyring manjaro-keyring
 #UseDelta    = 0.7
 Architecture = auto
 # Pacman won't upgrade packages listed in IgnorePkg and members of IgnoreGroup
-#IgnorePkg   =
+IgnorePkg   = linux
+#IgnoreGroup =
+#NoUpgrade   =
+#NoExtract   =
+# Misc options
+#UseSyslog
+#Color
+#TotalDownload
+# We cannot check disk space from within a chroot environment
+#CheckSpace
+#VerbosePkgLists
+# By default, pacman accepts packages signed by keys that its local keyring
+# trusts (see pacman-key and its man page), as well as unsigned packages.
+SigLevel    = Required DatabaseOptional
+LocalFileSigLevel = Optional
+#RemoteFileSigLevel = Required
+
+# NOTE: You must run `pacman-key --init` before first using pacman; the local
+# keyring can then be populated with the keys of all official Manjaro Linux
+# packagers with `pacman-key --populate archlinux manjaro`.
+
+#
+# REPOSITORIES
+#   - can be defined here or included from another file
+#   - pacman will search repositories in the order defined here
+#   - local/custom mirrors can be added here or in separate files
+#   - repositories listed first will take precedence when packages
+#     have identical names, regardless of version number
+#   - URLs will have \$repo replaced by the name of the current repo
+#   - URLs will have $arch replaced by the name of the architecture
+#
+# Repository entries are of the format:
+#       [repo-name]
+#       Server = ServerName
+#       Include = IncludePath
+#
+# The header [repo-name] is crucial - it must be present and
+# uncommented to enable the repo.
+#
+# The testing repositories are disabled by default. To enable, uncomment the
+# repo name header and Include lines. You can add preferred servers immediately
+# after the header, and they will be used before the default mirrors.
+
+  [core]
+  SigLevel = Never
+  Include = /etc/pacman.d/mirrorlist
+
+  [extra]
+  SigLevel = Never
+  Include = /etc/pacman.d/mirrorlist
+
+  [community]
+  SigLevel = Never
+  Include = /etc/pacman.d/mirrorlist
+
+  # If you want to run 32 bit applications on your x86_64 system,
+  # enable the multilib repositories as required here.
+
+  [multilib]
+  SigLevel = Never
+  Include = /etc/pacman.d/mirrorlist
+
+  # An example of a custom package repository.  See the pacman manpage for
+  # tips on creating your own repositories.
+  #[custom]
+  #SigLevel = Optional TrustAll
+  #Server = file:///home/custompkgs
+EOF
+
+cat > "$mirrorlistpacman" <<- EOF
+##
+## Arch Linux 32 repository mirrorlist
+## Generated on 2020-05-06
+##
+
+## Belarus
+Server = http://mirror.datacenter.by/pub/archlinux32/\$arch/\$repo/
+Server = https://mirror.datacenter.by/pub/archlinux32/\$arch/\$repo/
+
+## France
+Server = http://archlinux32.agoctrl.org/\$arch/\$repo/
+Server = https://archlinux32.agoctrl.org/\$arch/\$repo/
+
+## Germany
+Server = http://de.mirror.archlinux32.org/\$arch/\$repo/
+Server = https://de.mirror.archlinux32.org/\$arch/\$repo/
+Server = http://ger.mirror.archlinux32.org/\$arch/\$repo/
+Server = https://ger.mirror.archlinux32.org/\$arch/\$repo/
+Server = http://mirror.archlinux32.org/\$arch/\$repo/
+Server = https://mirror.archlinux32.org/\$arch/\$repo/
+Server = http://mirror.archlinux32.oss/\$arch/\$repo/
+
+## Greece
+Server = http://gr.mirror.archlinux32.org/\$arch/\$repo/
+
+## India
+Server = http://ind.mirror.archlinux32.org/\$arch/\$repo/
+Server = https://ind.mirror.archlinux32.org/\$arch/\$repo/
+
+## Japan
+Server = http://jpn.mirror.archlinux32.org/\$arch/\$repo/
+Server = https://jpn.mirror.archlinux32.org/\$arch/\$repo/
+
+## Russia
+Server = http://mirror.yandex.ru/archlinux32/\$arch/\$repo/
+Server = https://mirror.yandex.ru/archlinux32/\$arch/\$repo/
+
+## Switzerland
+Server = http://archlinux32.andreasbaumann.cc/\$arch/\$repo/
+Server = https://archlinux32.andreasbaumann.cc/\$arch/\$repo/
+
+## United States
+Server = https://32.arlm.tyzoid.com/\$arch/\$repo/
+Server = http://mirror.clarkson.edu/archlinux32/\$arch/\$repo/
+Server = https://mirror.clarkson.edu/archlinux32/\$arch/\$repo/
+Server = http://mirror.math.princeton.edu/pub/archlinux32/\$arch/\$repo/
+Server = https://mirror.math.princeton.edu/pub/archlinux32/\$arch/\$repo/
+
+EOF
+
+fi
+
+
+if [ ${specialarchtype} == "x86_64" ]; then
+cat > "$pacmanconf" <<- EOF
+# /etc/pacman.conf
+# UNIFYSERVER PATCHED
+# See the pacman.conf(5) manpage for option and repository directives
+#
+# GENERAL OPTIONS
+#
+[options]
+# The following paths are commented out with their default values listed.
+# If you wish to use different paths, uncomment and update the paths.
+#RootDir     = /
+#DBPath      = /var/lib/pacman/
+CacheDir    = /InstallCache
+#LogFile     = /var/log/pacman.log
+#GPGDir      = /etc/pacman.d/gnupg/
+#HookDir     = /etc/pacman.d/hooks/
+HoldPkg      = pacman glibc manjaro-system
+# If upgrades are available for these packages they will be asked for first
+SyncFirst    = manjaro-system archlinux-keyring manjaro-keyring
+#XferCommand = /usr/bin/curl -C - -f %u > %o
+#XferCommand = /usr/bin/wget --passive-ftp -c -O %o %u
+#CleanMethod = KeepInstalled
+#UseDelta    = 0.7
+Architecture = auto
+# Pacman won't upgrade packages listed in IgnorePkg and members of IgnoreGroup
+IgnorePkg   = linux
 #IgnoreGroup =
 #NoUpgrade   =
 #NoExtract   =
@@ -1861,27 +2913,30 @@ echo "Cleaning Lists"
 sed -i "s/^[[:space:]]*\(CheckSpace\)/# \1/" "${folder}/etc/pacman.conf"
 export installmode=1 #this flag is to disable env before updating the glibc
 threadGPG=$(bash ${bin} "pacman-key --init" > ${logs}/gpgInit 2>&1 ) &
-echo "Waiting for 15 seconds"
-sleep 15
+echo "Waiting for 55 seconds"
+sleep 5
 kill -9 ${threadPID}
 echo disable-scdaemon > ${folder}/etc/pacman.d/gnupg/gpg-agent.conf #https://github.com/sdrausty/TermuxArch/issues/33
 echo "${pbadge} Initiating GPG key signing phase 1"
-threadGPG=$(bash ${bin} "pacman-key --populate archlinux${specialarchtype}" > ${logs}/gpgInit 2>&1 ) &
+threadGPG=$(bash ${bin} "pacman-key --populate archlinux${specialarchtype}" > ${logs}/gpgInit 2>&1 ) >> ${logs}/pacmanKeyInit.log 2>&1  &
 threadPID=$!
 echo "Waiting for 10 seconds"
 sleep 10
 kill -9 ${threadPID}
 echo "${pbadge} Initiating GPG key signing phase 2"
-threadGPG=$(bash ${bin} "pacman-key --populate archlinux${specialarchtype}" > ${logs}/gpgInit 2>&1 ) &
+threadGPG=$(bash ${bin} "pacman-key --populate archlinux${specialarchtype}" > ${logs}/gpgInit 2>&1 ) >> ${logs}/pacmanKeyInit.log 2>&1  &
 threadPID=$!
-echo "Waiting for 60 seconds"
-sleep 60
+echo "Waiting for 10 seconds"
+sleep 10
 kill -9 ${threadPID}
 
 # Update the pacman libraries first
 # THe depenendices are available in here https://bbs.archlinux.org/viewtopic.php?id=117679
-bash ${bin} "pacman -Syy libidn2 libpsl gnutls systemd curl gpgme gnupg --noconfirm"
-bash ${bin} "pacman -Syyu busybox which screenfetch perl fish --noconfirm"
+bash ${bin} "rm -rf /var/lib/pacman/db.lck"
+echo "${pbadge} Forcefully Refreshing repo"
+bash ${bin} "pacman -Syy --noconfirm --overwrite * "
+bash ${bin} "pacman -Syy libidn2 libpsl gnutls systemd curl gpgme gnupg --noconfirm --overwrite * " 
+bash ${bin} "pacman -Syyu busybox awk which screenfetch perl fish --noconfirm --overwrite * "
 #bash ${bin} "rm -rf /tmp/*;apt-get clean ; mv /var/lib/apt/lists /tmp; mkdir -p /var/lib/apt/lists/partial; apt-get clean;chown -R root:root /var/lib/apt/lists/partial"
 #bash ${bin} "apt-get update --allow-insecure-repositories"
 #bash ${bin} "apt-get update --allow-insecure-repositories --allow-unauthenticated"
@@ -1893,7 +2948,7 @@ if [ -f ${maindir}/NOPTRACE ]; then
 bash ${bin} "pacman-key --populate archlinux${specialarchtype}" # fixing at least one signature invalidation prolem
 # the reason is still unknown why chroot butchered the permission or make the gpg inavlid
 fi
-bash ${bin} "busybox install /usr/bin"
+#bash ${bin} "busybox install /usr/bin"
 echo "${pbadge} 🧳 Fixing Perl"
 #bash ${bin} "rm -f /usr/bin/perl"
 #bash ${bin} "cp /usr/bin/perl5* /usr/bin/perl"
@@ -1910,23 +2965,85 @@ echo "${pbadge} 😄Yippie yay your installation is successfull😄"
 echo a > success
 echo "${pbadge} Trimming installation"
 rm -rf ${folder}/usr/lib/firmware/*
+APIcall pwmCall_disable_wakelockcall
 else
   red
-echo "${pbadge} 🥺Aww that sucks your installation didnt pass the verifier test🥺"
-if [ ${DEVELMODE}=="1" ]; then
+echo "============================================================================"
+echo "${pbadge} 🥺THE CONTAINER FAILED DURING INSTALL AND VERIFICATION🥺"
+echo "============================================================================"
+errorcount=$(( $errorcount + 1 ))
+if [ $errorcount -gt 3 ]; then
+red
+echo Halt!
+echo "Infinite loop detected"
+echo "Please investigate the operation above!"
+sleep 69696969696
+exit
+fi
+if [ ${DEVELMODE} == "1" ] && [ ! -z ${DEVELMODE} ]; then
+  # IF YOU RUN ON SUDO PLEASE MAKE SURE TO USE $ sudo env DEVELMODE=1 ./unifyServer
 echo "${pbadge} Dropping into shell mode"
 bash ${bin} sh
 fi
+yellow
+defaultContainerSetup
 fi
 
 echo "${pbadge} 🧳 making $bin executable"
 chmod +x $bin
 }
 
+#This is basically the same as creating one container ahead of the request so later on it can be simply renamed it giving it a instant access
+# I recommend to run this service in the background to give it the sense of super fast but rather a clever optimization
+#containerAheadOptimizationCache > ${logs}/containerAheadOptimizationCache.log 2>&1 &
+##echo $! > ${maindir}/containerOptimizationPID
+containerAheadOptimizationCache(){
+  echo "[debug] Checking TMP FOLDER"
+if [ -f ${unasignedContainer}/runningCacheOP ]; then
+exit
+fi
+  echo 1 > ${unasignedContainer}/runningCacheOP
+if [ ! -d ${unasignedContainer} ] || [ ! -f ${unasignedContainer}/cacheSuccess ] || [ ! -d ${unasignedContainer}/rootfs ]; then
+${userspacebackend} ${symlinkfix} rm -rfv ${unasignedContainer}
+mkdir ${unasignedContainer}
+${userspacebackend} ${symlinkfix} tar -C "${unasignedContainer}" -xf "${containersLair}/defaultSeq" >> ${logs}/UNASIGNEDrootfsOptimizedCopyOperation.log 2>&1
+echo 1 > ${unasignedContainerTMP}/cacheSuccess
+fi
+rm ${unasignedContainer}/runningCacheOP
+}
 
 
+sequentialOptimizationCache(){
+#This is the samething as defrag
+# This optimization will increase the speed not only on HDD but on lower core counts computer and single threaded cp commands
+cd ${origindir}
+if [ ! -f ${containersLair}/defaultSeq ] || [ ! -f ${containersLair}/guranteedSeqIntegrity ]; then
+cd ${defaultContainer}
+echo "${pbadge} 🧳 Optimizing System "
+tar cvzf ${containersLair}/defaultSeq . >> ${logs}/rootfsOptimization.log 2>&1
+echo 1 > ${containersLair}/guranteedSeqIntegrity # flag for integrity if it finishes compressing
+echo "${pbadge} 🧳 Optimizing System Done "
+else
+echo "${pbadge} 🧳 System has been optimized"
+fi
+containerAheadOptimizationCache   > ${logs}/containerAheadOptimizationCache.log 2>&1 &
+#echo $! > ${maindir}/containerOptimizationPID
+cd ${origindir}
+}
+
+
+notifyBusIOd(){
+  svcstart_notifyBusIOThread(){
+red
+echo "${pbadge} Function is not implemented"
+echo "[debug] notifyBusIOd() function is a stub code"
+}
+svcstart_notifyBusIOThread &
+export svcPID_notifyBusIOThread=$!
+}
 
 defaultContainerSetup(){
+
 if [ ${newInstall} == "0" ] && [ -f ${defaultContainer}/success ]; then
 echo 1 > ${defaultContainer}/success
 fi
@@ -1944,14 +3061,21 @@ else
   red
 if [ -f ${defaultContainer}/success ]; then
 green
+APIcall systemUI_notifysend "✔️_defaultContainer_integrity_check_success"
 echo "${pbadge} default container is installed"
+rm -rf ${defaultContainer}/bootstrap.tar.gz
 else
 red
-echo "${pbadge} retrying Install due to the corrupted install"
+APIcall systemUI_notifysend "❌_defaultContainer_failure"
+echo "${pbadge} resetting Install due to the corrupted install"
+echo "${pbadge} Automatic Resolve Enabled"
+envTroubleShooting
 export newInstall=1
 # This will forces the program to retry until the program output the flag ( success flag ) from the verifier test ( See bootstrapSetup verifier test )
 cd ${origindir}
-${userspacebackend} ${symlinksFix} rm -rf ${defaultContainer}
+${userspacebackend} ${symlinkfix} rm -rf ${containersLair}/defaultSeq
+${userspacebackend} ${symlinkfix} rm -rf ${unasignedContainer}
+${userspacebackend} ${symlinkfix} rm -rf ${defaultContainer}
 folderInit
 defaultContainerSetup
 fi
@@ -1959,7 +3083,33 @@ fi
 }
 
 
+unifyServerD_vm(){
+echo "${pbadge} Function is not implemented"
+echo "[DEBUG]: unifyServer vm daemon"
+}
+
+
+cacheExpireCheck(){
+if [ ! -f ${containersLair}/expireCount ]; then
+  echo "${pbadge} Cache is invalid deleting cache"
+  APIcall systemUI_notifysend "Cache_is_invalid_refreshing_Cache"
+  ${userspacebackend} ${symlinkfix} rm -rf ${containersLair}/defaultSeq
+  ${userspacebackend} ${symlinkfix} rm -rf ${unasignedContainer}
+  echo 0 > ${containersLair}/expireCount
+else
+expireCount=$(cat ${containersLair}/expireCount)
+expireCount=$((expireCount + 1))
+echo "${expireCount}" > ${containersLair}/expireCount
+if [ ${expireCount} -gt "16" ]; then
+rm -rf ${containersLair}/expireCount
+fi
+fi
+}
+
+
+
 fetchUpdateManager(){
+# IF YOU RUN ON SUDO PLEASE MAKE SURE TO USE $ sudo env DEVELMODE=1 ./unifyServer
 if [ -z ${DEVELMODE} ]; then
 cd ${origindir}
 git reset --hard
@@ -1969,7 +3119,212 @@ chmod +x ${0}
 fi
 }
 
+#Cache data into ram using variables
+cachemem(){
+red
+prefetchmem(){
+count=0
+for a in $(ls ${TMPFolder}/prefetch); do
+count=count+1
+export address_${count}=$(cat ${a})
+export storedmem="${storedmem} address_${count}"
+done
+}
 
+flushmem(){
+  for a in ${storedmem}; do
+    echo "${a}" > ${TMPFolder}/prefetch/$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1)
+  done
+}
+
+
+
+red
+echo "${pbadge} Warning this is a experimental feature use with caution"
+
+store(){
+echo "${pbadge} [debug] ${storedmem} address_${1} "
+
+export address_${1}="$(busybox tar -cf - "${2}" | base64)"
+export storedmem="${storedmem} address_${2}"
+}
+
+release(){
+if [ address_${1} != "null" ] || [ ! -z address_${1} ] ; then
+echo "test"
+fi
+}
+
+eraseAddress(){
+export address_${2}="null"
+}
+
+cachememd(){
+echo "${pbadge} function is not implemented"
+}
+
+${1} ${2} ${3}
+}
+
+
+makeObfuscation(){
+if [ ${DEVELMODE} == "1" ] && [ ! -z ${DEVELMODE} ]; then
+convertedcode=$(base64 ${0})
+
+
+output="bay_mana"
+cat > "${output}" <<- EOM
+#!/bin/bash
+capsule=$( echo "${convertedcode}" \| base64 \--decode)
+bash - \${1} \${2} \${3} \${4} < \${capsule}
+EOM
+
+
+
+else
+red
+echo "Wait thats illegal access"
+exit
+fi
+
+}
+
+
+
+
+
+
+
+
+APIcall(){
+  dummyResponse(){
+  echo "${pbadge} Current version of API Abstraction Layer is unsupported for your current environment"
+  }
+  #This function is basically like a API abstraction layer
+  #red
+  #echo "${pbadge} Function is not implemented"
+  #echo '[DEBUG] APIcall() function only supported for termux '
+  #yellow
+  #echo "${pbadge} Detecting available API"
+  #echo '[WARN] Wakelock, Notification, Humain interface input, Sensors may not work on current version'#
+
+  #____________________________
+  #Hardware Acceleration Setup
+  #OpenCL
+  opencl_forward(){
+    echo "${pbadge} Function is not yet implemented"
+  }
+  #__________________________
+  if [ ${distro} == "termux" ]; then
+    #systemUI calls
+    #echo "Using Termux API"
+    systemUI_notifysend(){ termux-notification "${1}" "${2}" "${3}" "${4}" ;}
+    systemUI_directNotification(){ termux-toast "${1}" "${2}" "${3}" "${4}" ;}
+    systemUI_nativeDownload(){ termux-download "${1}" "${2}" "${3}" "${4}" ;}
+    systemUI_clipboard_get(){ termux-clipboard-get; }
+    systemUI_clipboard_set(){ termux-clipboard-set; }
+    systemUI_authFingerprint(){ termux-fingerprint; }
+    #Power management calls
+    pwmCall_batterystat(){ termux-battery-status; }
+    pwmCall_enable_wakelockcall(){ termux-wake-lock; }
+    pwmCall_disable_wakelockcall(){ termux-wake-unlock; }
+    pwmCall_brightnessAdjust(){ termux-brightness; }
+    #Sensors call
+    sense_Retrievesensor(){ termux-sensor; }
+    #radiocall
+    tele_sms_read(){ termux-sms-list; }
+    tele_sms_send(){ termux-sms-send; }
+    tele_voice_call(){ termux-telephony-call ${1} ${2} ${3} ;}
+    #hardware access
+    hw_usb(){ termux-usb ${1} ${2} ${3} ;}
+  fi
+  if [ ${distro} == "debianGNU" ] || [ ${distro} == "iSH" ] || [ ${distro} == "debian" ] || [ ${distro} == "archlinux" ]; then
+    #systemUI calls
+    #echo "Using Generic GNU/Linux calls"
+    systemUI_notifysend(){ echo [INFO] ${pbadge}; }
+    if [ ! -z $(which xmessage) ]; then
+    systemUI_directNotification(){ xmessage; }
+  else
+    systemUI_directNotification(){ echo [INFO] ${pbadge}; }
+  fi
+  if [ ${WSLenv} == "1" ] && [ ! -z ${WSLenv} ]; then
+    #echo "Using WSL specific calls"
+  systemUI_directNotification(){ powershell.exe New-BurntToastNotification -Text "${1}" "${2}" "${3}" "${4}" ; }
+  systemUI_notifysend(){ powershell.exe New-BurntToastNotification -Text "${1}" "${2}" "${3}" "${4}"; }
+fi
+    alias systemUI_sensorpoll="dummyResponse"
+    if [ ! -z $(which aria2c) ]; then
+    systemUI_nativeDownload(){ aria2c; }
+  else
+    systemUI_nativeDownload(){ wget; }
+  fi
+    if [ ! -z $(which xclip) ]; then
+    systemUI_clipboard_get(){ xclip; }
+    systemUI_clipboard_set(){ xclip -selection c; }
+  else
+    alias systemUI_clipboard_get="dummyResponse"
+    alias systemUI_clipboard_set="dummyResponse"
+  fi
+    alias systemUI_authFingerprint="dummyResponse"
+    #Power management calls
+    if [ ! -d /proc/acpi ]; then
+    alias pwmCall_batterystat="termux-battery-status"
+    alias pwmCall_enable_wakelockcall="termux-wake-lock"
+    alias pwmCall_disable_wakelockcall="termux-wake-unlock"
+    alias pwmCall_brightnessAdjust="termux-brightness"
+  else
+    alias pwmCall_batterystat="dummyResponse"
+    alias pwmCall_enable_wakelockcall="dummyResponse"
+    alias pwmCall_disable_wakelockcall="dummyResponse"
+    alias pwmCall_brightnessAdjust="dummyResponse"
+  fi
+    #Sensors call
+    export sense_Retrievesensor="dummyResponse"
+    #radiocall
+    alias tele_sms_read="dummyResponse"
+    alias tele_sms_send="dummyResponse"
+    alias tele_voice_call="dummyResponse"
+    #hardware access
+    hw_usb(){ lsusb ; }
+  fi
+  # use distroDetection to determine its API usage
+  # API that is need to be implemented are but not limited
+  # Wakelock, Notification, Humain interface input, Sensors
+
+#125
+#https://unix.stackexchange.com/questions/1496/why-doesnt-my-bash-script-recognize-aliases
+#First of all, as ddeimeke said, aliases by default are not expanded in non-interactive shells.
+#Second, .bashrc is not read by non-interactive shells unless you set the BASH_ENV environment variable.
+#But most importantly: don't do that! Please? One day you will move that script somewhere where the necessary aliases are not set and it will break again.
+#Instead set and use environment variables as shortcuts in your script:
+  "${1}" "${2}" "${3}" "${4}" &
+}
+
+envTroubleShooting(){
+yellow
+echo "${pbadge} Experimental Troubleshooter"
+echo "Fixing Partial Sleep"
+partialSleepandroid9fix(){
+  pkglist=$(pm list packages -f | sed -e 's/.*=//' | sort | grep term )
+#echo ${pkglist}
+
+
+if [ $1 == 'restore' ]; then
+for a in ${pkglist}; do
+echo "Deoptimizing ${a}"
+cmd appops set "${a}" WAKE_LOCK allow
+cmd appops set "${a}" RUN_IN_BACKGROUND allow
+cmd appops set "${a}" RUN_ANY_IN_BACKGROUND allow
+cmd appops set "${a}" START_FOREGROUND allow
+done
+exit
+fi
+}
+if [ -d /system ]; then
+su -c "partialSleepandroid9fix" >> ${logs}/partialSleepfix 2>&1
+fi
+echo done
+}
 
 symlinksFix(){
 if [ ${linktosymlinkActivated} == '1' ]; then
@@ -1979,26 +3334,242 @@ else
 fi
 }
 
-#_________Main_________
-intro
-yellow
-echo "${pbadge} 📁 [1/6] Checking Folders"
-folderInit
-intro
-yellow
-echo "${pbadge} 🚒 [2/6] Checking dependencies"
+
+recoveryEnvironment(){
+if [ ! -d ${recoveryEnvironmentDir}/.git ] || [ ! -f ${recoveryEnvironmentDir}/unifyServer ]; then
+echo "${pbadge} Recovery Files not found This is a dangerous thing!"
+echo "${pbadge} Please wait... while we creating current version recovery"
+cp -v ${origindir}/unifyServer ${recoveryEnvironmentDir}
+cp -rv ${origindir}/.git ${recoveryEnvironmentDir}
+echo "${pbadge} Critical core has been backed up!"
+echo "${pbadge} Creating Recovery Wizard"
+output="${origindir}/recovery"
+cat > "${output}" <<- EOM
+#!/bin/bash
+clear
+echo "Recovering unifyServer!"
+cp -r "${recoveryEnvironmentDir}/*" "${origindir}"
+echo "Updating UnifyServer"
+git reset --hard
+git pull
+echo "Recovering All containers"
+for a in \$(cat ${origindir}/containers.txt ); do
+bay fix \${a}
+done
+echo "Finished Recovery"
+EOM
+chmod +x ${origindir}/recovery
+else
+echo "${pbadge} Recovery environment Present! Do no harm!"
+fi
+
+}
+
+#https://stackoverflow.com/questions/4013947/how-to-use-pastebin-from-shell-script
+sendLog() {
+  if [[ $1 ]]; then
+    curl -F 'sprunge=<-' "http://sprunge.us" <"$1"
+  else
+    curl -F 'sprunge=<-' "http://sprunge.us"
+  fi
+}
+
+clearlog(){
+rm -rf ${logs}/*.log
+}
+
+diagnosticsRun(){
+clear
+confirmation
+folderInit # we need to do folderInit due to the fact that we skipped the boot sequence so the folder and other variable does not initialize unless we do folderInit
 dependencies
+#clearlog
+#How about we send the full diagnostics? so we see what does the person did wrong?
+clear
 yellow
-echo "${pbadge} 🌳 [3/6] Checking ptrace compatibility"
+echo "================================================="
+green
+echo "UnifyServer Rapid Analysis and Compatibility test"
+yellow
+echo "================================================="
+red
+echo "Recording UnifyServer Behaviour for 10 minutes"
+green
+echo "While waiting for next instructions you can leave this program in the background"
+echo "and get cup of green tea while murmuring about the rain"
+yellow
+echo "================================================="
+
+functionTests(){
+yellow
+echo "=================="
+export NOBOOT="" # we neeed to unset NOBOOT due to the fact NOBOOT parameter was exported globally caused a chaos while testing
+green
+export diagnosticTrigger=1
+echo "Triggering Install"  >> ${logs}/diagnostics.log 2>&1
+date >> ${logs}/diagnostics.log 2>&1
+bash ${0} help all >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "refresh"  >> ${logs}/diagnostics.log 2>&1
+date >> ${logs}/diagnostics.log 2>&1
+bash ${0} refresh yes >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "import" >> ${logs}/diagnostics.log 2>&1
+green
+bash ${0} import 'https://github.com/Questandachievement7Developer/container_importExample' >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "list" >> ${logs}/diagnostics.log 2>&1
+green
+bash ${0} list all >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "refresh" >> ${logs}/diagnostics.log 2>&1
+green
+env SCRIPTCALL=1 bash ${0} reset ContainerImportTestfromGithub  >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "Setup" >> ${logs}/diagnostics.log 2>&1
+green
+recoveryEnvironment >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "remove"
+green
+env SCRIPTCALL=1 bash ${0} remove ContainerImportTestfromGithub  >> ${logs}/diagnostics.log  2>&1
+yellow
+echo "=================="
+}
+sendDiagnostics(){
+    # Send diagnostics timeout is when the diagnostic are taking too long so it will interrupt and send the logs or diagnostic data without waiting for the diagnostic to finish
+if [ $TIMEOUTWAIT == 1 ]; then
+yellow
+echo "${pbadge} [sendDiagnostics()] I have been launched! "
+echo "${pbadge} [sendDiagnostics()] Dont worry we will be done in the next 10 Minutes "
+sleep 100
+echo "${pbadge} [sendDiagnostics()] journalizing it "
+sleep 100
+echo "${pbadge} [sendDiagnostics()] Intresting "
+sleep 100
+echo "${pbadge} [sendDiagnostics()] GNU/Linux are great "
+sleep 100
+echo "${pbadge} [sendDiagnostics()] I see the finish line "
+sleep 100
+echo "${pbadge} [sendDiagnostics()] We are almost done ! "
+sleep 100
+
+#http://morningcoffee.io/killing-a-process-and-all-of-its-descendants.html
+echo "${pbadge} [sendDiagnostics()] 10 Minutes Tracing Done!"
+kill -9 -- -${diagnosticThreadPID}
+kill $(ps -s $diagnosticThreadPID -o pid=)
+else
+echo "Finished!"
+kill -9 -- -${sendDiagnosticsTimeoutThreadPID}
+fi
+echo Compiling Logs and adding headers
+echo "++++++unifySERVER DIAGNOSTIC LOG++++++" > ${origindir}/diagnostic_result.txt
+echo "++++++DO NOT SHARE TO ANYONE IN ORDER TO PRESERVE YOUR PRIVACY TO THE FULLEST++++++" >> ${origindir}/diagnostic_result.txt
+date >> ${origindir}/diagnostic_result.txt
+uname -a >> ${origindir}/diagnostic_result.txt
+echo "++++++++++MountPoint+++++++++++" >> ${origindir}/diagnostic_result.txt
+mount >> ${origindir}/diagnostic_result.txt
+echo "MOUNTPOINTEND+++++++++++++-----------" >> ${origindir}/diagnostic_result.txt
+
+echo "Commmit Version $(git log -1 --format=%cd)" >> ${origindir}/diagnostic_result.txt
+for a in $(ls ${logs}) ; do
+echo "++++++++FILE_${a}++++++++" >> ${origindir}/diagnostic_result.txt
+cat ${a} >> ${origindir}/diagnostic_result.txt
+echo "=======END FILE_${a}=======" >> ${origindir}/diagnostic_result.txt
+done
+cat ${logs}/*.log >> ${origindir}/diagnostic_result.txt
+clear
+green
+echo "Thank you for joining the survey Your contribution will help unifyServer!"
+yellow
+echo "========[Send this link to the developer]========="
+green
+sendLog "${origindir}/diagnostic_result.txt"
+yellow
+echo "=================================================="
+
+}
+#testing through debug mode
+if [ ! -z $@ ]; then
+${1} ${2} ${3} ${4}
+else
+
+sleep 1
+green
+echo "${pbadge} [THREAD] Experiment Started!"
+functionTests >> ${logs}/diagnostics.log 2>&1 & #mutes any error that occours and save for later
+export diagnosticThreadPID=$!
+# Launch sendDiagnostics with TIMEOUTWAIT TO wait functiontests to finish
+export TIMEOUTWAIT=1
+yellow
+echo "${pbadge} handing over to diagnostic timeout timer sendDiagnostics() ..."
+yellow
+sendDiagnostics
+exit
+
+fi
+
+
+}
+
+
+
+
+#Checks if there is a diagnostic mode invoked
+# or what we called is a DGM
+if [ ! -z ${PrimaryParam} ] && [ ${PrimaryParam} == "diagnostic" ]; then
+export NOBOOT=1
+diagnosticsRun
+else
+echo "Pass"
+fi
+
+if [ ! -z ${PrimaryParam} ] && [ ${PrimaryParam} == "debug" ]; then
+export NOBOOT=1
+debugFunct
+else
+echo "Pass"
+fi
+
+
+#fixes on uninitialized Variables
+if [ ! -z ${NOBOOT} ]; then
+folderInit
+fi
+
+
+
+#_________Main_________
+if [ -z ${NOBOOT} ]; then #whether skip checks or not
+#only if it is used for nonmodular purposes
+intro
+yellow
+echo "${pbadge} 📁 [1/8] Checking Folders"
+folderInit
+recoveryEnvironment  >> ${logs}/recoveryEnvironment.log 2>&1 #creating recovery environment
+intro
+yellow
+echo "${pbadge} 🚒 [2/8] Checking and installing dependencies"
+dependencies >> ${logs}/dependenciesCheck.log 2>&1
+yellow
+echo "${pbadge} 🌳 [3/8] Checking ptrace compatibility"
 ptraceCompatibilityPolice
 yellow
-echo "${pbadge} 💽 [4/6] Checking symlinks compatibility"
-symlinksFix
-echo "${pbadge} 💽 [5/6] Updating Manager"
-fetchUpdateManager
+echo "${pbadge} 💽 [4/8] Checking symlinks compatibility"
+symlinksFix >> ${logs}/symlinksCheck.log 2>&1
+echo "${pbadge} 💽 [5/8] Updating Manager"
+fetchUpdateManager >> ${logs}/ManagerUpdate.log 2>&1
 yellow
-echo "${pbadge} 💽 [6/6] Checking Default Container"
+echo "${pbadge} 💽 [6/8] Checking Default Container"
+export errorcount=0
 defaultContainerSetup
+yellow
+echo "${pbadge} 💽 [7/8] Cache validation Check"
+cacheExpireCheck >> ${logs}/CacherefreshCheck.log 2>&1
+yellow
+echo "${pbadge} 💽 [8/8] Caching Sequential rootfs"
+sequentialOptimizationCache >> ${logs}/CacheMakeCheck.log 2>&1
+fi
 paramCheck
 paramintrepreter
 exit
